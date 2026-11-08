@@ -1,0 +1,43 @@
+{
+  "$schema": "https://playground.wordpress.net/blueprint-schema.json",
+  "landingPage": "/shop/",
+  "preferredVersions": { "php": "8.3", "wp": "6.9.4" },
+  "login": true,
+  "steps": [
+    {
+      "step": "installPlugin",
+      "pluginData": { "resource": "url", "url": "https://downloads.wordpress.org/plugin/woocommerce.10.6.2.zip" },
+      "options": { "activate": true }
+    },
+    { "step": "activatePlugin", "pluginPath": "intents-checkout/intents-checkout.php" },
+    {
+      "step": "setSiteOptions",
+      "options": {
+        "woocommerce_coming_soon": "no",
+        "woocommerce_store_pages_only": "no",
+        "woocommerce_currency": "EUR",
+        "woocommerce_default_country": "NL",
+        "woocommerce_calc_taxes": "no",
+        "woocommerce_hold_stock_minutes": "90",
+        "permalink_structure": "/%postname%/",
+        "woocommerce_intents_checkout_settings": {
+          "enabled": "yes",
+          "mode": "sandbox",
+          "title": "Pay with any crypto",
+          "description": "Pay from 30+ blockchains (Ethereum, Base, Solana, Bitcoin, Tron, NEAR, ...). Settled through NEAR Intents.",
+          "merchant_account": "netrunner15.near",
+          "destination_asset": "nep141:17208628f84f5d6ad33f0da3bbbeb27ffcb398eac501a31bd6ad2011e36133a1",
+          "recipient_type": "INTENTS",
+          "quote_minutes": "30",
+          "slippage_bps": "100",
+          "visibility": "everyone",
+          "debug": "yes"
+        }
+      }
+    },
+    {
+      "step": "runPHP",
+      "code": "<?php require '/wordpress/wp-load.php'; WC_Install::create_pages(); flush_rewrite_rules(); if ( ! wc_get_products( array( 'limit' => 1, 'return' => 'ids' ) ) ) { $p = new WC_Product_Simple(); $p->set_name( 'NEAR Hackathon Sticker' ); $p->set_regular_price( '1.00' ); $p->set_virtual( true ); $p->set_status( 'publish' ); $p->set_description( 'A sticker that proves you paid with any crypto from any chain.' ); $p->save(); }"
+    }
+  ]
+}

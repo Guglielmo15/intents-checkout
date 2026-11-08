@@ -1,0 +1,93 @@
+# One-command demo store: WordPress 6.9.4 + WooCommerce 10.6.2 + this plugin.
+#   cp .env.example .env && docker compose up -d && docker compose logs -f setup
+# Store: http://localhost:8080/shop   Admin: http://localhost:8080/wp-admin (admin / admin)
+
+x-wp-env: &wp-env
+  WORDPRESS_DB_HOST: db
+  WORDPRESS_DB_USER: wp
+  WORDPRESS_DB_PASSWORD: wp
+  WORDPRESS_DB_NAME: wordpress
+  INTENTS_CHECKOUT_JWT: ${INTENTS_CHECKOUT_JWT:-}
+
+x-cli: &cli
+  image: wordpress:cli-2.12.0-php8.3
+  user: "33:33"
+  environment:
+    <<: *wp-env
+  volumes:
+    - wp:/var/www/html
+    - ./plugin:/var/www/html/wp-content/plugins/intents-checkout:ro
+
+services:
+  db:
+    image: mariadb:11.4.9
+    environment:
+      MARIADB_DATABASE: wordpress
+      MARIADB_USER: wp
+      MARIADB_PASSWORD: wp
+      MARIADB_ROOT_PASSWORD: root
+    volumes:
+      - db:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "healthcheck.sh", "--connect", "--innodb_initialized"]
+      interval: 5s
+      retries: 30
+
+  wordpress:
+    image: wordpress:6.9.4-php8.3-apache
+    depends_on:
+      db:
+        condition: service_healthy
+    ports:
+      - "${WP_PORT:-8080}:80"
+    environment:
+      <<: *wp-env
+    volumes:
+      - wp:/var/www/html
+      - ./plugin:/var/www/html/wp-content/plugins/intents-checkout:ro
+
+  # One-shot: installs WordPress + WooCommerce, creates the demo product, configures the gateway.
+  setup:
+    <<: *cli
+    depends_on:
+      - wordpress
+    environment:
+      <<: *wp-env
+      STORE_URL: ${STORE_URL:-http://localhost:8080}
+      MERCHANT_ACCOUNT: ${MERCHANT_ACCOUNT:-}
+      RECIPIENT_TYPE: ${RECIPIENT_TYPE:-INTENTS}
+      INTENTS_MODE: ${INTENTS_MODE:-sandbox}
+      STORE_CURRENCY: ${STORE_CURRENCY:-EUR}
+    volumes:
+      - wp:/var/www/html
+      - ./plugin:/var/www/html/wp-content/plugins/intents-checkout:ro
+      - ./docker/setup.sh:/setup.sh:ro
+    entrypoint: ["sh", "/setup.sh"]
+    restart: "no"
+
+  # Runs Action Scheduler every 20 s so payments are detected even when nobody is on the site.
+  cron:
+    <<: *cli
+    depends_on:
+      - setup
+    entrypoint: ["sh", "-c", "until wp core is-installed >/dev/null 2>&1 && wp plugin is-active intents-checkout >/dev/null 2>&1; do sleep 5; done; while true; do wp action-scheduler run --group=intents-checkout --quiet >/dev/null 2>&1 || true; sleep 20; done"]
+
+  # For you and for judges: docker compose exec cli wp intents-checkout ...
+  cli:
+    <<: *cli
+    depends_on:
+      - wordpress
+    entrypoint: ["sh", "-c", "sleep infinity"]
+
+  # Unit tests (no WordPress needed): docker compose run --rm tests
+  tests:
+    image: php:8.3-cli
+    profiles: ["tests"]
+    working_dir: /app
+    volumes:
+      - ./:/app:ro
+    entrypoint: ["php", "tests/run.php"]
+
+volumes:
+  db: {}
+  wp: {}
