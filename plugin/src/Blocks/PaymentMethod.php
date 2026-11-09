@@ -42,6 +42,7 @@ final class PaymentMethod extends AbstractPaymentMethodType {
 		return array(
 			'title'       => $gateway ? $gateway->get_title() : '',
 			'description' => $gateway ? $gateway->get_description() : '',
+			'icon'        => INTENTS_CHECKOUT_URL . 'assets/checkout-icon.png',
 			'supports'    => $gateway ? array_values( array_filter( $gateway->supports, array( $gateway, 'supports' ) ) ) : array( 'products' ),
 		);
 	}

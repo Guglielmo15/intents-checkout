@@ -34,20 +34,29 @@ A shop that wants crypto payments has to choose chains, run wallets on each, and
 The browser never decides that an order is paid.
 
 **Other merchant safeguards**
-- On save, the settings page checks that your NEAR account **exists** and is **registered on the USDC contract**. Without that registration, tokens sent to it are lost: 1Click: "No refund will be made in case of insufficient storage_deposit".
+- On save, the settings page checks that your NEAR account **exists** and, if you chose delivery to your NEAR wallet, that it is **registered on the USDC contract** (see [Where the money goes](#where-the-money-goes)).
 - Every quote is kept on the order and watched until its deposit address expires (requested deadline + 72 h). A **late payment** to an expired or replaced quote is still detected. If an order is paid twice, the plugin tells you to refund the second payment.
 - WooCommerce won't auto-cancel an unpaid order while one of its deposit addresses can still receive funds.
 - Order notes record amounts, origin and settlement transaction hashes, and a NEAR Intents Explorer link.
+
+## Where the money goes
+
+In the settings, **Deliver to** decides where the store's USDC lands. Both options are non-custodial: only your NEAR account's keys can move the funds.
+
+| Deliver to | What happens | Setup |
+|---|---|---|
+| **My NEAR wallet** | USDC arrives in your NEAR wallet like any other token (NEP-141 transfer). | Your account must be registered once on the USDC contract (0.00125 NEAR, see below). |
+| **My NEAR Intents balance** | USDC is credited to your account inside NEAR Intents (`intents.near`). Keep it, swap it or withdraw it to any chain from the NEAR Intents app. | None. Also slightly cheaper: no withdrawal fee (for the same €1 order the customer sent 1.1213 instead of 1.1259 USDC in our test). |
+
+**Why the plugin checks the wallet option.** A NEAR account must be registered on a token contract before it can hold that token. 1Click still returns a quote for delivery to an unregistered account (we tested it), but the final transfer would fail, and the 1Click API states: "No refund will be made in case of insufficient storage_deposit". So when you choose "My NEAR wallet", the settings page reads `storage_balance_of` on the USDC contract and refuses to save an unregistered account, showing the one-line fix. The NEAR Intents balance option needs no check.
+
+![The settings page refusing an unregistered account](docs/screenshots/5-settings-guard.png)
 
 ## Screenshots
 
 | Checkout block | Pick a token | Pay | Paid |
 |---|---|---|---|
 | ![](docs/screenshots/1-checkout-block.png) | ![](docs/screenshots/2-pick-token.png) | ![](docs/screenshots/3-pay-sandbox.png) | ![](docs/screenshots/4-thank-you.png) |
-
-Settings guard: an account that is not registered on USDC can't be saved as the payout account.
-
-![](docs/screenshots/5-settings-guard.png)
 
 ## NEAR technologies used
 
@@ -76,7 +85,7 @@ Requirements: Docker with Compose. Ports: 8080.
    docker compose up -d
    docker compose logs -f setup      # wait for "setup done", then Ctrl+C
    ```
-   → The log ends with `wp intents-checkout check` output: `1Click tokens: ~200 assets on ~39 chains`, an exchange rate for EUR, and `setup done -> http://localhost:8080/shop`.
+   → The log ends with `wp intents-checkout check` output: `1Click tokens: ~200 assets on ~39 chains`, `Exchange rate: 1.1… (ECB reference rate …)`, and `setup done -> http://localhost:8080/shop`.
 
 2. **Open http://localhost:8080/shop**
    → One product: "NEAR Hackathon Sticker", €1.00.
@@ -85,7 +94,7 @@ Requirements: Docker with Compose. Ports: 8080.
    → The pay page shows "Pay €1.00 with crypto", quick picks (USDC · Base, ETH · Base, SOL · Solana, BTC · Bitcoin, …) and the full network and token list, loaded live from NEAR Intents.
 
 4. **Click "USDC · Base"** → **Get payment details**.
-   → "Send exactly 1.1… USDC on Base" (€1.00 converted at the live EURe/USDC rate, plus a 1% buffer), a QR code, a `sandbox-…` address, a 30-minute countdown, and "The store receives exactly 1.1… USDC on NEAR".
+   → "Send exactly 1.1… USDC on Base" (€1.00 converted at the ECB reference rate, plus a 1% buffer), a QR code, a `sandbox-…` address, a 30-minute countdown, and "The store receives exactly 1.1… USDC on NEAR".
 
 5. **In the yellow sandbox box, click "Deposit seen", then "Success".**
    → Steps go Waiting → Detected → Settled. Then "Payment received ✓" and a redirect to the WooCommerce order-received page.
@@ -106,7 +115,7 @@ Requirements: Docker with Compose. Ports: 8080.
    ```sh
    docker compose run --rm tests
    ```
-   → `26 passed, 0 failed, 0 skipped`. They cover signature verification against **real** 1Click mainnet responses, tampering (swapped recipient, deposit address or amount → rejected), every status, under-settlement, wrong recipient, and decimal/FX maths.
+   → `30 passed, 0 failed, 0 skipped`. They cover signature verification against **real** 1Click mainnet responses, tampering (swapped recipient, deposit address or amount → rejected), every status, under-settlement, wrong recipient, and decimal/FX maths.
 
 9. **Switch to the classic checkout** and repeat steps 3–5:
    ```sh
@@ -140,18 +149,19 @@ npx @wp-playground/cli@3.1.62 server --wp=6.9.4 --php=8.3 \
 
 ## Use it on a real store (live mode, mainnet)
 
-1. Create or choose a NEAR mainnet account, e.g. `yourshop.near`. Register it on the USDC contract once (0.00125 NEAR):
-   `near call 17208628f84f5d6ad33f0da3bbbeb27ffcb398eac501a31bd6ad2011e36133a1 storage_deposit '{"account_id":"yourshop.near"}' --accountId yourshop.near --deposit 0.00125`
-   Or choose "Deliver to: my NEAR Intents balance", which needs no registration.
+1. Create or choose a NEAR mainnet account, e.g. `yourshop.near`, and choose where payments land ([Where the money goes](#where-the-money-goes)):
+   - **My NEAR Intents balance**: nothing else to do.
+   - **My NEAR wallet**: register the account on the USDC contract once (0.00125 NEAR), e.g. with near-cli:
+     `near call 17208628f84f5d6ad33f0da3bbbeb27ffcb398eac501a31bd6ad2011e36133a1 storage_deposit '{"account_id":"yourshop.near"}' --accountId yourshop.near --deposit 0.00125`
 2. `./bin/build-zip.sh` → upload `dist/intents-checkout.zip` under **Plugins → Add New → Upload**. Or copy `plugin/` to `wp-content/plugins/intents-checkout`.
-3. **WooCommerce → Settings → Payments → Intents Checkout**: enable, Mode **Live**, your NEAR account, optionally a 1Click API key → Save.
-   → "NEAR account yourshop.near checked: it exists and can receive the settlement token." A wrong or unregistered account shows the exact fix and the gateway stays off.
+3. **WooCommerce → Settings → Payments → Intents Checkout**: enable, Mode **Live**, your NEAR account, **Deliver to**, optionally a 1Click API key → Save.
+   → "NEAR account yourshop.near checked: it exists and can receive the settlement token." A non-existent account, or an unregistered one with "My NEAR wallet", shows the exact fix and the gateway stays off.
 4. Optional: **Show to: shop managers only** to test on a live store without customers seeing it.
 5. Make sure WP-Cron or a system cron runs, so payments are detected when nobody has the pay page open, e.g. `* * * * * wp --path=/var/www/html action-scheduler run --group=intents-checkout`.
 
 **Fees** (charged by NEAR Intents, not by this plugin): without an API key, 1Click adds 0.25% on non-stablecoin routes ([fees](https://docs.near-intents.org/resources/fees)). With a partner key it's 0.20%, or 0.01% on stablecoin routes. The customer also pays normal network gas.
 
-**Currencies**: USD (1 USD = 1 USDC) and EUR (rate from NEAR Intents' own EURe and USDC prices). For any other currency, set a manual rate.
+**Currencies**: converted automatically. USD: 1 USD = 1 USDC. EUR, GBP, CHF and about 25 other currencies: the [European Central Bank daily reference rate](https://www.ecb.europa.eu/stats/policy_and_exchange_rates/euro_reference_exchange_rates/html/index.en.html), checked hourly. The rate and its source are fixed on each order when the quote is created and shown to the customer. If the ECB cannot be reached, EUR falls back to NEAR Intents' EURe price. A manual rate in the settings overrides all of this.
 
 ## How it works
 

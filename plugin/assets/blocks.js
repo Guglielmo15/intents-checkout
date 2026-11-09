@@ -16,9 +16,17 @@
 	var Content = function () {
 		return el( 'div', { className: 'ic-blocks-description' }, decode( settings.description || '' ) );
 	};
+	// Title on the left, icon on the right (like the other payment methods).
 	var Label = function ( props ) {
 		var PaymentMethodLabel = props.components && props.components.PaymentMethodLabel;
-		return PaymentMethodLabel ? el( PaymentMethodLabel, { text: title } ) : el( 'span', null, title );
+		var text = PaymentMethodLabel ? el( PaymentMethodLabel, { text: title } ) : el( 'span', null, title );
+		if ( ! settings.icon ) {
+			return text;
+		}
+		return el( 'span', { style: { display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%', gap: '8px' } }, [
+			el( 'span', { key: 'text' }, text ),
+			el( 'img', { key: 'icon', src: settings.icon, alt: 'Crypto', width: 24, height: 24, style: { height: '24px', width: 'auto' } } ),
+		] );
 	};
 
 	registry.registerPaymentMethod( {

@@ -15,3 +15,7 @@ All four carry a 1Click ed25519 signature that the official TypeScript SDK
 `tests/unit/StatusEvaluatorTest.php` derives the other statuses (SUCCESS, REFUNDED, ...) from the
 real PENDING response by changing only `status` and `swapDetails`; those variants are synthetic and
 the test says so.
+
+`ecb-eurofxref-daily.xml` is the European Central Bank daily reference-rate file
+(https://www.ecb.europa.eu/stats/eurofxref/eurofxref-daily.xml), downloaded on 2026-11-09 (rates dated
+2026-11-06), used by `tests/unit/EcbRatesTest.php`.

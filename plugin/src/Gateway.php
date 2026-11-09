@@ -23,6 +23,7 @@ final class Gateway extends \WC_Payment_Gateway {
 		$this->method_description = __( 'Customers pay with any token on 30+ chains; you receive one settlement token (default USDC) on your NEAR account. Settlement is done by NEAR Intents (1Click API); no custodian, no keys on this server.', 'intents-checkout' );
 		$this->has_fields         = false;
 		$this->supports           = array( 'products' );
+		$this->icon               = INTENTS_CHECKOUT_URL . 'assets/checkout-icon.png';
 
 		$this->init_form_fields();
 		$this->init_settings();
@@ -89,6 +90,7 @@ final class Gateway extends \WC_Payment_Gateway {
 					'DESTINATION_CHAIN' => __( 'My NEAR wallet (NEP-141 transfer)', 'intents-checkout' ),
 					'INTENTS'           => __( 'My NEAR Intents balance (intents.near)', 'intents-checkout' ),
 				),
+				'description' => __( 'NEAR wallet: the token arrives in your NEAR wallet like any other token; your account must be registered once on the token contract (about 0.00125 NEAR), and saving is refused until it is. NEAR Intents balance: the token is credited to your account inside NEAR Intents (intents.near), with no registration and no withdrawal fee; keep, swap or withdraw it from the NEAR Intents app.', 'intents-checkout' ),
 				'default'     => $d['recipient_type'],
 			),
 			'api_key'           => array(
@@ -114,7 +116,7 @@ final class Gateway extends \WC_Payment_Gateway {
 			'fx_rate'           => array(
 				'title'       => __( 'Manual exchange rate (optional)', 'intents-checkout' ),
 				'type'        => 'text',
-				'description' => __( 'Settlement tokens per 1 unit of store currency. Leave empty to use 1 for USD and NEAR Intents EURe/USDC prices for EUR. Required for other currencies.', 'intents-checkout' ),
+				'description' => __( 'Settlement tokens per 1 unit of store currency. Leave empty (recommended) to convert automatically: 1 USD = 1 USDC, and the European Central Bank daily reference rate for EUR, GBP, CHF and about 25 other currencies.', 'intents-checkout' ),
 				'default'     => '',
 			),
 			'visibility'        => array(
@@ -145,8 +147,17 @@ final class Gateway extends \WC_Payment_Gateway {
 		if ( 'admins' === $this->get_option( 'visibility' ) && ! current_user_can( 'manage_woocommerce' ) ) {
 			return false;
 		}
-		$currency = get_woocommerce_currency();
-		return in_array( $currency, array( 'USD', 'EUR' ), true ) || is_numeric( $this->get_option( 'fx_rate' ) );
+		return in_array( get_woocommerce_currency(), Catalog::supported_currencies(), true ) || is_numeric( $this->get_option( 'fx_rate' ) );
+	}
+
+	/** Checkout icon, sized like the other gateways' icons whatever the theme's CSS does. */
+	public function get_icon() {
+		$html = sprintf(
+			'<img src="%s" alt="%s" width="24" height="24" class="intents-checkout-icon" style="width:auto;height:24px;max-height:24px;" />',
+			esc_url( $this->icon ),
+			esc_attr__( 'Crypto', 'intents-checkout' )
+		);
+		return apply_filters( 'woocommerce_gateway_icon', $html, $this->id );
 	}
 
 	public function process_payment( $order_id ) {

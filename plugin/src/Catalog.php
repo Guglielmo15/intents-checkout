@@ -10,13 +10,16 @@ namespace IntentsCheckout;
 use IntentsCheckout\OneClick\Client;
 use IntentsCheckout\Pure\Chains;
 use IntentsCheckout\Pure\Decimal;
+use IntentsCheckout\Pure\EcbRates;
 
 final class Catalog {
 
-	private const CACHE     = 'intents_checkout_tokens';
-	private const LAST_GOOD = 'intents_checkout_tokens_last';
+	private const CACHE         = 'intents_checkout_tokens';
+	private const LAST_GOOD     = 'intents_checkout_tokens_last';
+	private const ECB_CACHE     = 'intents_checkout_ecb';
+	private const ECB_LAST_GOOD = 'intents_checkout_ecb_last';
 
-	/** EURe on Gnosis: the only EUR stablecoin listed by 1Click; its USD price is used as EUR/USD. */
+	/** EURe on Gnosis: the only EUR stablecoin listed by 1Click; its USD price is the EUR/USD fallback. */
 	public const EURE = 'nep141:gnosis-0x420ca0f9b9b604ce0fd9c18ef134c705e5fa3430.omft.near';
 
 	/** @return array<string,array> assetId => token */
@@ -85,9 +88,12 @@ final class Catalog {
 	/**
 	 * Rate to convert 1 unit of the store currency into the settlement token, as a decimal string.
 	 *
-	 * - A manual rate in the settings always wins.
-	 * - USD store + USD stablecoin settlement: 1 (stablecoin parity, the usual merchant convention).
-	 * - EUR store: price(EURe) / price(settlement token), both from 1Click's own token prices.
+	 * 1. A manual rate in the settings always wins.
+	 * 2. Store currency -> USD: 1 for USD; otherwise the ECB daily reference rate (about 30 currencies).
+	 *    Fallback for EUR only, if the ECB file cannot be fetched: NEAR Intents' EURe price, which
+	 *    1Click rounds to 2 decimals and is therefore less precise.
+	 * 3. USD -> settlement token: 1 USD = 1 USDC/USDT (stablecoin parity, the usual merchant
+	 *    convention); any other token uses its NEAR Intents USD price.
 	 *
 	 * @return array{rate:string,source:string}|null null when the currency cannot be converted.
 	 */
@@ -100,22 +106,59 @@ final class Catalog {
 		if ( ! $dest || empty( $dest['price'] ) ) {
 			return null;
 		}
-		$is_usd_stable = in_array( strtoupper( $dest['symbol'] ), array( 'USDC', 'USDT', 'USDT0', 'DAI' ), true );
-		if ( 'USD' === $currency && $is_usd_stable ) {
-			return array( 'rate' => '1', 'source' => '1 USD = 1 ' . $dest['symbol'] );
-		}
+
 		if ( 'USD' === $currency ) {
-			return array( 'rate' => Decimal::rate_from_float( 1 / (float) $dest['price'] ), 'source' => 'NEAR Intents price of ' . $dest['symbol'] );
-		}
-		if ( 'EUR' === $currency ) {
-			$eure = self::token( self::EURE );
-			if ( ! $eure || empty( $eure['price'] ) ) {
+			$usd    = '1';
+			$source = '';
+		} else {
+			$ecb = self::ecb();
+			$usd = $ecb ? EcbRates::usd_per_unit( $ecb, $currency ) : null;
+			if ( null !== $usd ) {
+				$source = sprintf( 'ECB reference rate of %s: 1 %s = %s USD', $ecb['date'], $currency, $usd );
+			} elseif ( 'EUR' === $currency && ( $eure = self::token( self::EURE ) ) && ! empty( $eure['price'] ) ) { // phpcs:ignore Generic.CodeAnalysis.AssignmentInCondition
+				$usd    = Decimal::rate_from_float( (float) $eure['price'] );
+				$source = sprintf( 'NEAR Intents EURe price (ECB rate unavailable): 1 EUR = %s USD', $usd );
+			} else {
 				return null;
 			}
-			return array(
-				'rate'   => Decimal::rate_from_float( (float) $eure['price'] / (float) $dest['price'] ),
-				'source' => sprintf( 'NEAR Intents prices: EURe %s USD, %s %s USD', $eure['price'], $dest['symbol'], $dest['price'] ),
-			);
+		}
+
+		if ( in_array( strtoupper( $dest['symbol'] ), array( 'USDC', 'USDT', 'USDT0', 'DAI' ), true ) ) {
+			$rate   = $usd;
+			$source = ltrim( $source . '; 1 USD = 1 ' . $dest['symbol'], '; ' );
+		} else {
+			$rate   = Decimal::rate_from_float( (float) $usd / (float) $dest['price'] );
+			$source = ltrim( $source . '; NEAR Intents price of ' . $dest['symbol'] . ': ' . $dest['price'] . ' USD', '; ' );
+		}
+		return array( 'rate' => $rate, 'source' => $source );
+	}
+
+	/** Store currencies the gateway can price without a manual rate. */
+	public static function supported_currencies(): array {
+		return EcbRates::CURRENCIES;
+	}
+
+	/** ECB daily rates, cached for an hour; the last good copy is used if a refresh fails. */
+	public static function ecb(): ?array {
+		$cached = get_transient( self::ECB_CACHE );
+		if ( is_array( $cached ) ) {
+			return $cached;
+		}
+		$response = wp_remote_get( EcbRates::URL, array( 'timeout' => 10 ) );
+		$data     = null;
+		if ( ! is_wp_error( $response ) && 200 === (int) wp_remote_retrieve_response_code( $response ) ) {
+			$data = EcbRates::parse( (string) wp_remote_retrieve_body( $response ) );
+		}
+		if ( $data ) {
+			set_transient( self::ECB_CACHE, $data, HOUR_IN_SECONDS );
+			update_option( self::ECB_LAST_GOOD, $data, false );
+			return $data;
+		}
+		Log::error( 'Could not load ECB reference rates; using the last good copy if any.' );
+		$last = get_option( self::ECB_LAST_GOOD );
+		if ( is_array( $last ) ) {
+			set_transient( self::ECB_CACHE, $last, 10 * MINUTE_IN_SECONDS ); // Retry in 10 minutes.
+			return $last;
 		}
 		return null;
 	}

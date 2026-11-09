@@ -287,7 +287,7 @@
 		var footer = [
 			'The store receives exactly ' + q.amountOutFormatted + ' ' + q.destSymbol + ' on NEAR (' + q.merchant + ').',
 		];
-		if ( q.fxSource && q.fxRate && q.fxRate !== '1' ) { footer.push( ' Rate ' + q.fxRate + ' (' + q.fxSource + ').' ); }
+		if ( q.fxSource && q.fxRate && q.fxRate !== '1' ) { footer.push( ' Rate: ' + q.fxSource + '.' ); }
 		var foot = h( 'p', { class: 'ic-muted ic-small' }, footer.join( '' ) );
 		if ( q.explorerUrl ) {
 			foot.appendChild( document.createTextNode( ' ' ) );
