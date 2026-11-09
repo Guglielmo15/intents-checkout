@@ -46,7 +46,7 @@ In the settings, **Deliver to** decides where the store's USDC lands. Both optio
 | Deliver to | What happens | Setup |
 |---|---|---|
 | **My NEAR wallet** | USDC arrives in your NEAR wallet like any other token (NEP-141 transfer). | Your account must be registered once on the USDC contract (0.00125 NEAR, see below). |
-| **My NEAR Intents balance** | USDC is credited to your account inside NEAR Intents (`intents.near`). Keep it, swap it or withdraw it to any chain from the NEAR Intents app. | None. Also slightly cheaper: no withdrawal fee (for the same €1 order the customer sent 1.1213 instead of 1.1259 USDC in our test). |
+| **My NEAR Intents balance** | USDC is credited to your account inside NEAR Intents (`intents.near`). Keep it, swap it or withdraw it to any chain from the NEAR Intents app. | None. Also slightly cheaper: no withdrawal fee. |
 
 **Why the plugin checks the wallet option.** A NEAR account must be registered on a token contract before it can hold that token. 1Click still returns a quote for delivery to an unregistered account (we tested it), but the final transfer would fail, and the 1Click API states: "No refund will be made in case of insufficient storage_deposit". So when you choose "My NEAR wallet", the settings page reads `storage_balance_of` on the USDC contract and refuses to save an unregistered account, showing the one-line fix. The NEAR Intents balance option needs no check.
 
@@ -157,11 +157,36 @@ npx @wp-playground/cli@3.1.62 server --wp=6.9.4 --php=8.3 \
 3. **WooCommerce → Settings → Payments → Intents Checkout**: enable, Mode **Live**, your NEAR account, **Deliver to**, optionally a 1Click API key → Save.
    → "NEAR account yourshop.near checked: it exists and can receive the settlement token." A non-existent account, or an unregistered one with "My NEAR wallet", shows the exact fix and the gateway stays off.
 4. Optional: **Show to: shop managers only** to test on a live store without customers seeing it.
-5. Make sure WP-Cron or a system cron runs, so payments are detected when nobody has the pay page open, e.g. `* * * * * wp --path=/var/www/html action-scheduler run --group=intents-checkout`.
+5. Set up the background check (one cron line): see [Background checks (cron)](#background-checks-cron).
 
 **Fees** (charged by NEAR Intents, not by this plugin): without an API key, 1Click adds 0.25% on non-stablecoin routes ([fees](https://docs.near-intents.org/resources/fees)). With a partner key it's 0.20%, or 0.01% on stablecoin routes. The customer also pays normal network gas.
 
 **Currencies**: converted automatically. USD: 1 USD = 1 USDC. EUR, GBP, CHF and about 25 other currencies: the [European Central Bank daily reference rate](https://www.ecb.europa.eu/stats/policy_and_exchange_rates/euro_reference_exchange_rates/html/index.en.html), checked hourly. The rate and its source are fixed on each order when the quote is created and shown to the customer. If the ECB cannot be reached, EUR falls back to NEAR Intents' EURe price. A manual rate in the settings overrides all of this.
+
+### Background checks (cron)
+
+**Why.** NEAR Intents has no webhooks, so the plugin asks it for the status of each open payment. It does that in two ways:
+- every 5 seconds while the customer keeps the pay page open;
+- in the background, through WooCommerce's scheduler (Action Scheduler), which WordPress runs from WP-Cron. WP-Cron only runs when someone visits the site.
+
+If the customer pays and closes the tab, the order is updated by the background check. On a store without visitors at that moment, it waits until the next visit: the money is safe, but the order stays "Pending payment" until then.
+
+**When it's needed.**
+- Busy store with WP-Cron enabled (the WordPress default): optional, but recommended.
+- Quiet store: recommended, so orders update within a minute.
+- WP-Cron disabled (`define( 'DISABLE_WP_CRON', true );` in `wp-config.php`, common on managed hosting): **required**, otherwise background checks never run.
+- Docker demo from this repository: not needed, the `cron` container already does it.
+
+**How.** Add one line to the crontab of the user your web server runs PHP as (`www-data` on Debian/Ubuntu). It runs only this plugin's checks, every minute. It requires [WP-CLI](https://wp-cli.org/); replace the path with your WordPress folder (the one containing `wp-config.php`):
+```sh
+( sudo crontab -u www-data -l 2>/dev/null | grep -v 'intents-checkout'; echo '* * * * * /usr/local/bin/wp --path=/var/www/your-site action-scheduler run --group=intents-checkout --quiet >/dev/null 2>&1' ) | sudo crontab -u www-data -
+sudo crontab -u www-data -l
+```
+→ The second command prints the line. Other cron lines of that user are kept; only earlier lines mentioning `intents-checkout` are replaced. Run the check once by hand to confirm it works:
+```sh
+sudo -u www-data wp --path=/var/www/your-site action-scheduler run --group=intents-checkout
+```
+→ `Found N scheduled tasks` … `Success`.
 
 ## How it works
 

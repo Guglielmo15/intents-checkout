@@ -150,10 +150,10 @@ final class Gateway extends \WC_Payment_Gateway {
 		return in_array( get_woocommerce_currency(), Catalog::supported_currencies(), true ) || is_numeric( $this->get_option( 'fx_rate' ) );
 	}
 
-	/** Checkout icon, sized like the other gateways' icons whatever the theme's CSS does. */
+	/** Checkout icon in the common 45x26 payment-icon format (logo centred), whatever the theme's CSS does. */
 	public function get_icon() {
 		$html = sprintf(
-			'<img src="%s" alt="%s" width="24" height="24" class="intents-checkout-icon" style="width:auto;height:24px;max-height:24px;" />',
+			'<img src="%s" alt="%s" width="45" height="26" class="intents-checkout-icon" style="width:45px;height:26px;max-height:26px;" />',
 			esc_url( $this->icon ),
 			esc_attr__( 'Crypto', 'intents-checkout' )
 		);

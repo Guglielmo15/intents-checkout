@@ -25,7 +25,7 @@
 		}
 		return el( 'span', { style: { display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%', gap: '8px' } }, [
 			el( 'span', { key: 'text' }, text ),
-			el( 'img', { key: 'icon', src: settings.icon, alt: 'Crypto', width: 24, height: 24, style: { height: '24px', width: 'auto' } } ),
+			el( 'img', { key: 'icon', src: settings.icon, alt: 'Crypto', width: 45, height: 26, style: { width: '45px', height: '26px' } } ),
 		] );
 	};
 
