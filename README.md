@@ -126,15 +126,15 @@ Requirements: Docker with Compose. Ports: 8080.
 ### Verify a real mainnet payment without spending anything
 
 ```sh
-docker compose exec cli wp intents-checkout replay <DEPOSIT_ADDRESS>
+docker compose exec cli wp intents-checkout replay 0x1de8f6f26e801FbF477871AE1ea7D2fbE4e58D6b
 ```
-This fetches the live 1Click status of a **real past mainnet payment**, verifies its signature, creates a new order bound to it, and runs the normal verification. → The order becomes **Processing**, with the real origin and NEAR transaction hashes in the notes (tagged `[REPLAY …]`).
+This fetches the live 1Click status of a **real past mainnet payment** (the first row below), verifies its 1Click signature, creates a new order bound to it, and runs the normal verification. → `1Click status: SUCCESS`, then the order becomes **Processing**, with the real Base and NEAR transaction hashes in its notes (tagged `[REPLAY …]`).
 
-Real payments made while building this (live mode, guglielmoruffo.eu):
+Real payments made while building this (live mode, [guglielmoruffo.eu](https://guglielmoruffo.eu), product "NEAR Hackathon Participation Badge", €0.50):
 
-| Date | Paid | Store received | Deposit address |
-|---|---|---|---|
-| _to be added after the first mainnet test_ | | | |
+| Date (UTC) | Customer paid | Store received | Deposit address | Transactions |
+|---|---|---|---|---|
+| 2026-11-10 | 0.560815 USDC on Base, from MetaMask (0.56648 sent, 0.003265 unused buffer refunded automatically) | **0.5607 USDC** in netrunner15.near's NEAR Intents balance | [`0x1de8f6f2…e4e58D6b`](https://explorer.near-intents.org/transactions/0x1de8f6f26e801FbF477871AE1ea7D2fbE4e58D6b) | Base: [`0x01f33e38…b5de3c`](https://basescan.org/tx/0x01f33e382803651939cdcdcc2c202396b9359a576c2fcbaf6a8080dca2b5de3c) · NEAR: [`BAsBcCTU…1wEV`](https://nearblocks.io/txns/BAsBcCTUYvHk5GjeDd6EAZyDDFNE6jsT8SjbDcQZ1wEV) |
 
 ### No Docker?
 
