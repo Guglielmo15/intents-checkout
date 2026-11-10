@@ -115,7 +115,7 @@ Requirements: Docker with Compose. Ports: 8080.
    ```sh
    docker compose run --rm tests
    ```
-   → `30 passed, 0 failed, 0 skipped`. They cover signature verification against **real** 1Click mainnet responses, tampering (swapped recipient, deposit address or amount → rejected), every status, under-settlement, wrong recipient, and decimal/FX maths.
+   → `34 passed, 0 failed, 0 skipped`. They cover the **first real mainnet payment** (its unmodified 1Click SUCCESS response is evaluated as paid), signature verification against **real** 1Click mainnet responses, tampering (swapped recipient, deposit address or amount → rejected), every status, under-settlement, wrong recipient, and decimal/FX maths.
 
 9. **Switch to the classic checkout** and repeat steps 3–5:
    ```sh

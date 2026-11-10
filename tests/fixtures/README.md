@@ -8,6 +8,7 @@ Real responses from the NEAR Intents 1Click API (mainnet), recorded on 2026-11-0
 | `quote-live-base-usdc.json` | `POST /v0/quote`, `dry:false`, EXACT_OUTPUT: USDC on Base -> 5 USDC on NEAR |
 | `quote-dry-base-eth.json` | `POST /v0/quote`, `dry:true`, same as the first |
 | `status-live-pending.json` | `GET /v0/status` for the deposit address of `quote-live-base-eth.json` (PENDING_DEPOSIT) |
+| `status-live-success.json` | `GET /v0/status` of the first real payment (2026-11-10, order #164 on guglielmoruffo.eu): SUCCESS, 0.5607 USDC settled. Recorded after settlement, unmodified. |
 
 All four carry a 1Click ed25519 signature that the official TypeScript SDK
 (`@defuse-protocol/one-click-sdk-typescript` 0.1.26, `verifyQuoteSignature`) accepts.
