@@ -21,7 +21,7 @@ final class Settings {
 		'description'       => 'Pay from 30+ blockchains (Ethereum, Base, Solana, Bitcoin, Tron, NEAR, ...). Settled through NEAR Intents.',
 		'mode'              => 'live',
 		'merchant_account'  => '',
-		'recipient_type'    => 'DESTINATION_CHAIN',
+		'recipient_type'    => 'INTENTS',
 		'destination_asset' => self::USDC_NEAR,
 		'api_key'           => '',
 		'quote_minutes'     => '30',

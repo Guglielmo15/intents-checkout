@@ -45,8 +45,10 @@ In the settings, **Deliver to** decides where the store's USDC lands. Both optio
 
 | Deliver to | What happens | Setup |
 |---|---|---|
-| **My NEAR wallet** | USDC arrives in your NEAR wallet like any other token (NEP-141 transfer). | Your account must be registered once on the USDC contract (0.00125 NEAR, see below). |
-| **My NEAR Intents balance** | USDC is credited to your account inside NEAR Intents (`intents.near`). Keep it, swap it or withdraw it to any chain from the NEAR Intents app. | None. Also slightly cheaper: no withdrawal fee. |
+| **My NEAR Intents balance** (recommended, the default) | USDC is credited to your NEAR account inside NEAR Intents (`intents.near`). Wallets with NEAR Intents built in, such as NEAR Mobile, show it next to your other tokens and let you send it, swap it or move it to other chains. | None. Also slightly cheaper: no withdrawal fee. |
+| **My NEAR wallet** | USDC is sent to your account on the USDC token contract, like a classic token transfer (NEP-141). | Your account must be registered once on the USDC contract (0.00125 NEAR, see below). |
+
+**No NEAR wallet yet?** [NEAR Mobile](https://www.nearmobile.app/) ([iOS](https://apps.apple.com/app/id6443501225) · [Android](https://play.google.com/store/apps/details?id=com.peersyst.nearmobilewallet)) creates a NEAR account for you and has NEAR Intents built in, so the shop's USDC is visible and usable from your phone as soon as a payment settles.
 
 **Why the plugin checks the wallet option.** A NEAR account must be registered on a token contract before it can hold that token. 1Click still returns a quote for delivery to an unregistered account (we tested it), but the final transfer would fail, and the 1Click API states: "No refund will be made in case of insufficient storage_deposit". So when you choose "My NEAR wallet", the settings page reads `storage_balance_of` on the USDC contract and refuses to save an unregistered account, showing the one-line fix. The NEAR Intents balance option needs no check.
 
@@ -149,8 +151,8 @@ npx @wp-playground/cli@3.1.62 server --wp=6.9.4 --php=8.3 \
 
 ## Use it on a real store (live mode, mainnet)
 
-1. Create or choose a NEAR mainnet account, e.g. `yourshop.near`, and choose where payments land ([Where the money goes](#where-the-money-goes)):
-   - **My NEAR Intents balance**: nothing else to do.
+1. Create or choose a NEAR mainnet account, e.g. `yourshop.near` (for example in [NEAR Mobile](https://www.nearmobile.app/)), and choose where payments land ([Where the money goes](#where-the-money-goes)):
+   - **My NEAR Intents balance** (recommended): nothing else to do.
    - **My NEAR wallet**: register the account on the USDC contract once (0.00125 NEAR), e.g. with near-cli:
      `near call 17208628f84f5d6ad33f0da3bbbeb27ffcb398eac501a31bd6ad2011e36133a1 storage_deposit '{"account_id":"yourshop.near"}' --accountId yourshop.near --deposit 0.00125`
 2. `./bin/build-zip.sh` → upload `dist/intents-checkout.zip` under **Plugins → Add New → Upload**. Or copy `plugin/` to `wp-content/plugins/intents-checkout`.

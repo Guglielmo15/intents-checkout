@@ -71,7 +71,12 @@ final class Gateway extends \WC_Payment_Gateway {
 				'title'       => __( 'Your NEAR account', 'intents-checkout' ),
 				'type'        => 'text',
 				'placeholder' => 'yourshop.near',
-				'description' => __( 'Mainnet account that receives the payments, e.g. yourshop.near or a 64-character implicit account. Checked on save: it must exist and be registered on the settlement token contract.', 'intents-checkout' ),
+				'description' => __( 'Mainnet account that receives the payments, e.g. yourshop.near or a 64-character implicit account. Checked on save: it must exist on NEAR mainnet.', 'intents-checkout' )
+					. '<br>' . sprintf(
+						/* translators: %s: link to NEAR Mobile */
+						__( 'Make sure you use a wallet with NEAR Intents built in, such as %s, so you can see and use the payments you receive straight away.', 'intents-checkout' ),
+						'<a href="https://www.nearmobile.app/" target="_blank" rel="noopener">NEAR Mobile</a>'
+					),
 				'default'     => $d['merchant_account'],
 			),
 			'destination_asset' => array(
@@ -87,10 +92,11 @@ final class Gateway extends \WC_Payment_Gateway {
 				'title'       => __( 'Deliver to', 'intents-checkout' ),
 				'type'        => 'select',
 				'options'     => array(
-					'DESTINATION_CHAIN' => __( 'My NEAR wallet (NEP-141 transfer)', 'intents-checkout' ),
-					'INTENTS'           => __( 'My NEAR Intents balance (intents.near)', 'intents-checkout' ),
+					'INTENTS'           => __( 'My NEAR Intents balance (recommended)', 'intents-checkout' ),
+					'DESTINATION_CHAIN' => __( 'My NEAR wallet (USDC token contract)', 'intents-checkout' ),
 				),
-				'description' => __( 'NEAR wallet: the token arrives in your NEAR wallet like any other token; your account must be registered once on the token contract (about 0.00125 NEAR), and saving is refused until it is. NEAR Intents balance: the token is credited to your account inside NEAR Intents (intents.near), with no registration and no withdrawal fee; keep, swap or withdraw it from the NEAR Intents app.', 'intents-checkout' ),
+				'description' => __( '<strong>NEAR Intents balance (recommended):</strong> payments are credited to your NEAR account inside NEAR Intents, with no setup and no withdrawal fee. Wallets with NEAR Intents built in show this balance next to your other tokens and let you send it, swap it or move it to other chains.', 'intents-checkout' )
+					. '<br>' . __( '<strong>NEAR wallet:</strong> the USDC is sent to your account on the USDC token contract, like a classic token transfer. Your account must be registered on that contract once (0.00125 NEAR), and saving is refused until it is.', 'intents-checkout' ),
 				'default'     => $d['recipient_type'],
 			),
 			'api_key'           => array(
