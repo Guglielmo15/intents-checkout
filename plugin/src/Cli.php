@@ -190,11 +190,20 @@ final class Cli {
 		$dest   = Catalog::token( $req['destinationAsset'] ) ?? array( 'symbol' => '?', 'decimals' => 6 );
 		WP_CLI::log( sprintf( '1Click status: %s; quote: %s %s -> %s %s to %s', $status['status'], $quote['amountInFormatted'], $origin['symbol'], $quote['amountOutFormatted'], $dest['symbol'], $req['recipient'] ) );
 
+		// Show the order in the store's currency: settled amount converted back at today's rate (an approximation; the real
+		// amounts are the USDC figures in the notes). Falls back to the settled amount if the currency cannot be converted.
+		$fx          = Catalog::fx( get_woocommerce_currency(), (string) $req['destinationAsset'] );
+		$store_total = $fx && (float) $fx['rate'] > 0
+			? wc_format_decimal( (float) $quote['amountOutFormatted'] / (float) $fx['rate'], wc_get_price_decimals() )
+			: (string) $quote['amountOutFormatted'];
+
 		$order = wc_create_order( array( 'status' => 'pending' ) );
 		$fee   = new \WC_Order_Item_Fee();
 		$fee->set_name( 'Replay of NEAR Intents payment ' . $address );
-		$fee->set_total( (string) $quote['amountOutFormatted'] );
+		$fee->set_total( $store_total );
 		$order->add_item( $fee );
+		$order->set_billing_first_name( 'Replay of' );
+		$order->set_billing_last_name( 'mainnet payment' );
 		$order->set_billing_email( 'replay@example.com' );
 		$order->set_payment_method( Gateway::ID );
 		$order->set_payment_method_title( Settings::get( 'title' ) );
@@ -239,7 +248,7 @@ final class Cli {
 		$order->save();
 		OrderSync::sync( $order->get_id(), true );
 		$this->status( array( $order->get_id() ), $assoc );
-		WP_CLI::success( 'Replay order ' . $order->get_id() . ': ' . admin_url( 'post.php?post=' . $order->get_id() . '&action=edit' ) );
+		WP_CLI::success( 'Replay order ' . $order->get_id() . ': ' . $order->get_edit_order_url() );
 	}
 
 	/**

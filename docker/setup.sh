@@ -32,7 +32,15 @@ if ! wp plugin is-installed woocommerce; then
   wp plugin install woocommerce --version="$WC_VERSION"
 fi
 wp plugin activate woocommerce intents-checkout
-wp rewrite structure '/%postname%/' --hard >/dev/null
+wp rewrite structure '/%postname%/' >/dev/null   # The WordPress image already ships the .htaccess rules.
+
+# Demo only: the containers have no mail server, so skip sending e-mails instead of printing sendmail errors.
+mkdir -p /var/www/html/wp-content/mu-plugins
+cat > /var/www/html/wp-content/mu-plugins/demo-no-mail.php <<'PHP'
+<?php
+// Docker demo only (created by docker/setup.sh): there is no mail server, so e-mails are skipped.
+add_filter( 'pre_wp_mail', '__return_true' );
+PHP
 
 # Store basics: no "coming soon" page, no onboarding wizard, currency, hold stock longer than a quote lives.
 wp option update woocommerce_coming_soon no >/dev/null

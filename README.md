@@ -128,7 +128,7 @@ Requirements: Docker with Compose. Ports: 8080.
 ```sh
 docker compose exec cli wp intents-checkout replay 0x1de8f6f26e801FbF477871AE1ea7D2fbE4e58D6b
 ```
-This fetches the live 1Click status of a **real past mainnet payment** (the first row below), verifies its 1Click signature, creates a new order bound to it, and runs the normal verification. → `1Click status: SUCCESS`, then the order becomes **Processing**, with the real Base and NEAR transaction hashes in its notes (tagged `[REPLAY …]`).
+This fetches the live 1Click status of a **real past mainnet payment** (the first row below), verifies its 1Click signature, creates a new order bound to it, and runs the normal verification. → `1Click status: SUCCESS`, then a new order "Replay of mainnet payment" that is **paid** (status **Completed**, since it has no product to ship), with the real Base and NEAR transaction hashes in its notes (tagged `[REPLAY …]`).
 
 Real payments made while building this (live mode, [guglielmoruffo.eu](https://guglielmoruffo.eu), product "NEAR Hackathon Participation Badge", €0.50):
 

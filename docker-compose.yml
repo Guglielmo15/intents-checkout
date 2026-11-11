@@ -8,6 +8,7 @@ x-wp-env: &wp-env
   WORDPRESS_DB_PASSWORD: wp
   WORDPRESS_DB_NAME: wordpress
   INTENTS_CHECKOUT_JWT: ${INTENTS_CHECKOUT_JWT:-}
+  WP_CLI_CACHE_DIR: /tmp/wp-cli-cache
 
 x-cli: &cli
   image: wordpress:cli-2.12.0-php8.3
