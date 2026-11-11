@@ -4,6 +4,8 @@ A WooCommerce payment gateway. Customers pay with **any token on 30+ chains** (E
 
 Built for the [NEAR HACKATHON](https://nearhackathon.com) (1–14 Nov 2026), track **Real-World Money**.
 
+**Install:** download [`intents-checkout.zip`](https://github.com/Guglielmo15/intents-checkout/releases/latest/download/intents-checkout.zip) from the [latest release](https://github.com/Guglielmo15/intents-checkout/releases/latest) and upload it in WordPress under **Plugins → Add New → Upload Plugin**. (GitHub's green "Code → Download ZIP" button downloads the whole repository, which WordPress cannot install.)
+
 ## The problem
 
 A shop that wants crypto payments has to choose chains, run wallets on each, and reconcile payments by hand. Its customers usually hold the "wrong" token on the "wrong" chain. Existing crypto gateways either take custody of the funds or support a few chains.
@@ -155,7 +157,7 @@ npx @wp-playground/cli@3.1.62 server --wp=6.9.4 --php=8.3 \
    - **My NEAR Intents balance** (recommended): nothing else to do.
    - **My NEAR wallet**: register the account on the USDC contract once (0.00125 NEAR), e.g. with near-cli:
      `near call 17208628f84f5d6ad33f0da3bbbeb27ffcb398eac501a31bd6ad2011e36133a1 storage_deposit '{"account_id":"yourshop.near"}' --accountId yourshop.near --deposit 0.00125`
-2. `./bin/build-zip.sh` → upload `dist/intents-checkout.zip` under **Plugins → Add New → Upload**. Or copy `plugin/` to `wp-content/plugins/intents-checkout`.
+2. Download `intents-checkout.zip` from the [latest release](https://github.com/Guglielmo15/intents-checkout/releases/latest) (or build it yourself: `./bin/build-zip.sh` → `dist/intents-checkout.zip`) → upload it under **Plugins → Add New → Upload Plugin**. Or copy `plugin/` to `wp-content/plugins/intents-checkout`.
 3. **WooCommerce → Settings → Payments → Intents Checkout**: enable, Mode **Live**, your NEAR account, **Deliver to**, optionally a 1Click API key → Save.
    → "NEAR account yourshop.near checked: it exists and can receive the settlement token." A non-existent account, or an unregistered one with "My NEAR wallet", shows the exact fix and the gateway stays off.
 4. Optional: **Show to: shop managers only** to test on a live store without customers seeing it.
